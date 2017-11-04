@@ -5,21 +5,13 @@
 
 #include "draw.h"
 
-
-const Point ZP = { 0, 0 };
-const Rectangle ZR = { { 0, 0 }, { 0, 0 } };
-
-pixman_point_fixed_t
-PointPixman(Point p)
-{
-	pixman_point_fixed_t pm;
-	pm.x = p.X;
-	pm.y = p.Y;
-	return pm;
-}
+const Point ZP = {0, 0};
+const Point IP = {1E9, 1E9};
+const Rectangle ZR = {{0, 0}, {0, 0}};
+const Rectangle IR = {{-1E9, -1E9}, {1E9, 1E9}};
 
 Point
-Pt(int x, int y)
+pt(int x, int y)
 {
 	Point p;
 	p.X = x;
@@ -28,13 +20,13 @@ Pt(int x, int y)
 }
 
 int
-PointString(Point p, char **dst)
+ptstr(Point p, char **dst)
 {
 	return asprintf(dst, "(%d,%d)", p.X, p.Y);
 }
 
 Point
-PointAdd(Point p, Point q)
+ptadd(Point p, Point q)
 {
 	p.X += q.X;
 	p.Y += q.Y;
@@ -42,7 +34,7 @@ PointAdd(Point p, Point q)
 }
 
 Point
-PointSub(Point p, Point q)
+ptsub(Point p, Point q)
 {
 	p.X -= q.X;
 	p.Y -= q.Y;
@@ -50,7 +42,7 @@ PointSub(Point p, Point q)
 }
 
 Point
-PointMul(Point p, int k)
+ptmul(Point p, int k)
 {
 	p.X *= k;
 	p.Y *= k;
@@ -58,7 +50,7 @@ PointMul(Point p, int k)
 }
 
 Point
-PointDiv(Point p, int k)
+ptdiv(Point p, int k)
 {
 	p.X /= k;
 	p.Y /= k;
@@ -66,20 +58,20 @@ PointDiv(Point p, int k)
 }
 
 int
-PointIn(Point p, Rectangle r)
+ptin(Point p, Rectangle r)
 {
 	return r.Min.X <= p.X && p.X < r.Max.X &&
 	    r.Min.Y <= p.Y && p.Y < r.Max.Y;
 }
 
 int
-PointEq(Point p, Point q)
+pteq(Point p, Point q)
 {
 	return p.X == q.X && p.Y == q.Y;
 }
 
 Rectangle
-Rect(int x0, int y0, int x1, int y1)
+rect(int x0, int y0, int x1, int y1)
 {
 	Rectangle r;
 	int t;
@@ -101,7 +93,7 @@ Rect(int x0, int y0, int x1, int y1)
 }
 
 Rectangle
-RectPt(Point min, Point max)
+rectpt(Point min, Point max)
 {
 	Rectangle r;
 	r.Min = min;
@@ -110,27 +102,36 @@ RectPt(Point min, Point max)
 }
 
 int
-RectString(Rectangle r, char **dst)
+rectstr(Rectangle r, char **dst)
 {
 	return asprintf(dst, "(%d,%d)-(%d,%d)",
 	    r.Min.X, r.Min.Y,
 	    r.Max.X, r.Max.Y);
 }
 
+void
+rectdump(Rectangle r)
+{
+	char *rs;
+	rectstr(r, &rs);
+	fputs(rs, stderr);
+	free(rs);
+}
+
 int
-RectDx(Rectangle r)
+rectdx(Rectangle r)
 {
 	return r.Max.X - r.Min.X;
 }
 
 int
-RectDy(Rectangle r)
+rectdy(Rectangle r)
 {
 	return r.Max.Y - r.Min.Y;
 }
 
 Point
-RectSize(Rectangle r)
+rectsize(Rectangle r)
 {
 	Point p;
 	p.X = r.Max.X - r.Min.X;
@@ -139,7 +140,7 @@ RectSize(Rectangle r)
 }
 
 Rectangle
-RectAdd(Rectangle r, Point p)
+rectadd(Rectangle r, Point p)
 {
 	r.Min.X += p.X;
 	r.Min.Y += p.Y;
@@ -149,7 +150,7 @@ RectAdd(Rectangle r, Point p)
 }
 
 Rectangle
-RectSub(Rectangle r, Point p)
+rectsub(Rectangle r, Point p)
 {
 	r.Min.X -= p.X;
 	r.Min.Y -= p.Y;
@@ -159,16 +160,16 @@ RectSub(Rectangle r, Point p)
 }
 
 Rectangle
-RectInset(Rectangle r, int n)
+rectinset(Rectangle r, int n)
 {
-	if (RectDx(r) < 2*n) {
+	if (rectdx(r) < 2*n) {
 		r.Min.X = (r.Min.X + r.Max.X) / 2;
 		r.Max.X = r.Min.X;
 	} else {
 		r.Min.X = r.Min.X + n;
 		r.Max.X = r.Max.X - n;
 	}
-	if (RectDy(r) < 2*n) {
+	if (rectdy(r) < 2*n) {
 		r.Min.Y = (r.Min.Y + r.Max.Y) / 2;
 		r.Max.Y = r.Min.Y;
 	} else {
@@ -179,13 +180,13 @@ RectInset(Rectangle r, int n)
 }
 
 int
-RectEmpty(Rectangle r)
+rectempty(Rectangle r)
 {
 	return r.Min.X >= r.Max.X || r.Min.Y >= r.Max.Y;
 }
 
 int
-RectEq(Rectangle r, Rectangle s)
+recteq(Rectangle r, Rectangle s)
 {
 	return r.Min.X == s.Min.X &&
 	    r.Max.X == s.Max.X &&
@@ -194,17 +195,17 @@ RectEq(Rectangle r, Rectangle s)
 }
 
 int
-RectOverlaps(Rectangle r, Rectangle s)
+rectoverlaps(Rectangle r, Rectangle s)
 {
-	return !RectEmpty(r) && !RectEmpty(s) &&
+	return !rectempty(r) && !rectempty(s) &&
 	    r.Min.X < s.Max.X && s.Min.X < r.Max.X &&
 	    r.Min.Y < s.Max.Y && s.Min.Y < r.Max.Y;
 }
 
 int
-RectIn(Rectangle r, Rectangle s)
+rectin(Rectangle r, Rectangle s)
 {
-	if (RectEmpty(r))
+	if (rectempty(r))
 		return 1;
 	return s.Min.X <= r.Min.X &&
 	    r.Max.X <= s.Max.X &&
@@ -213,7 +214,7 @@ RectIn(Rectangle r, Rectangle s)
 }
 
 Rectangle
-RectCanon(Rectangle r)
+rectcanon(Rectangle r)
 {
 	int t;
 	if (r.Max.X < r.Min.X) {
@@ -230,7 +231,7 @@ RectCanon(Rectangle r)
 }
 
 Rectangle
-RectIntersect(Rectangle r, Rectangle s)
+rectintersect(Rectangle r, Rectangle s)
 {
 	if (r.Min.X < s.Min.X)
 		r.Min.X = s.Min.X;
@@ -240,17 +241,17 @@ RectIntersect(Rectangle r, Rectangle s)
 		r.Max.X = s.Max.X;
 	if (r.Max.Y > s.Max.Y)
 		r.Max.Y = s.Max.Y;
-	if (RectEmpty(r))
+	if (rectempty(r))
 		return ZR;
 	return r;
 }
 
 Rectangle
-RectUnion(Rectangle r, Rectangle s)
+rectunion(Rectangle r, Rectangle s)
 {
-	if (RectEmpty(r))
+	if (rectempty(r))
 		return s;
-	if (RectEmpty(s))
+	if (rectempty(s))
 		return r;
 	if (r.Min.X > s.Min.X)
 		r.Min.X = s.Min.X;

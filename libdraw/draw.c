@@ -1,19 +1,17 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include <pixman.h>
-
 #include "draw.h"
 
-void
+static void
 clip(Image *dst, Rectangle *r,
     Image *src, Point *sp, Image *mask, Point *mp)
 {
 	Point orig = r->Min;
-	*r = RectIntersect(*r, dst->Rect);
-	*r = RectIntersect(*r, RectAdd(src->Rect, PointSub(orig, *sp)));
+	*r = rectintersect(*r, dst->r);
+	*r = rectintersect(*r, rectadd(src->r, ptsub(orig, *sp)));
 	if (mask) {
-		*r = RectIntersect(*r, RectAdd(mask->Rect, PointSub(orig, *mp)));
+		*r = rectintersect(*r, rectadd(mask->r, ptsub(orig, *mp)));
 	}
 	int dx, dy;
 	dx = r->Min.X - orig.X;
@@ -29,28 +27,17 @@ clip(Image *dst, Rectangle *r,
 }
 
 void
-DrawMask(Image *dst, Rectangle r,
+drawmask(Image *dst, Rectangle r,
     Image *src, Point sp,
     Image *mask, Point mp, Op op)
 {
 	assert(dst && src);
 	clip(dst, &r, src, &sp, mask, &mp);
-
-	pixman_image_t *ps, *pm, *pd;
-	ps = pm = pd = 0;
-	pd = dst->_pix;
-	if (src) ps = src->_pix;
-	if (mask) pm = mask->_pix;
-
-	int pix_op = OpPixman[op];
-	if (!pix_op) pix_op = op;
-	pixman_image_composite(pix_op, ps, pm, pd,
-	    sp.X, sp.Y, mp.X, mp.Y, r.Min.X, r.Min.Y,
-	    RectDx(r), RectDy(r));
+	drawer->drawmask(dst, r, src, sp, mask, mp, op);
 }
 
 void
-Draw(Image *dst, Rectangle r, Image *src, Point sp, Op op)
+draw(Image *dst, Rectangle r, Image *src, Point sp, Op op)
 {
-	DrawMask(dst, r, src, sp, 0, ZP, op);
+	drawmask(dst, r, src, sp, 0, ZP, op);
 }

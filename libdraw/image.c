@@ -4,102 +4,65 @@
 
 #include "draw.h"
 
-static void
-_image_init_pixman(Image *img)
-{
-}
-
 Image *
-allocImage()
+newimaged(Rectangle r, unsigned long chan, int repl, Color *fill, void *data)
 {
 	Image *img;
 	if (!(img = malloc(sizeof (Image))))
 		return 0;
-	img->Rect = ZR;
+	img->r = r;
+	img->clipr = (repl && fill) ? rect(0,0,1,1) : r;
+	img->chan = chan;
+	img->repl = repl;
+	img->fill = fill;
+	img->Pix = data;
+	if (drawer->imagealloc(img))
+		return 0;
 	return img;
 }
 
-static Image *
-pixmanImage(Image *img)
-{
-	img->_pix = pixman_image_create_bits(
-	    img->_pix_fmt, RectDx(img->Rect), RectDy(img->Rect), NULL, 0);
-	return img;
-}
-
-void *
-ImageMem(Image *img)
-{
-	return pixman_image_get_data(img->_pix);
-}
-
 Image *
-NewAlpha(Rectangle r)
+newimage(Rectangle r, unsigned long chan, int repl, Color *fill)
 {
-	Image *img = allocImage();
-	img->Rect = r;
-	img->_pix_fmt = PIXMAN_a8;
-	return pixmanImage(img);
-}
-
-Image *
-NewAlpha16(Rectangle r)
-{
-	Image *img = allocImage();
-	img->Rect = r;
-	img->_pix_fmt = PIXMAN_a8r8g8b8;
-	return pixmanImage(img);
-}
-
-Image *
-NewRGBA(Rectangle r)
-{
-	Image *img = allocImage();
-	img->Rect = r;
-	img->_pix_fmt = PIXMAN_r8g8b8a8;
-	return pixmanImage(img);
-}
-
-Image *
-NewARGB(Rectangle r)
-{
-	Image *img = allocImage();
-	img->Rect = r;
-	img->_pix_fmt = PIXMAN_a8r8g8b8;
-	return pixmanImage(img);
+	return newimaged(r, chan, repl, fill, 0);
 }
 
 void
-ImageFree(Image *img)
+freeimg(Image *img)
 {
-	if (img->_pix)
-		pixman_image_unref(img->_pix);
+	drawer->imagefree(img);
 	free(img);
 }
 
 Image *
-NewUniform(Color c)
+newalpha(Rectangle r)
 {
-	Image *img = allocImage();
-	if (!img)
-		return 0;
-	img->Rect = Rect(-1E9, -1E9, 1E9, 1E9);
-	pixman_color_t pc = ColorPixman(c);
-	/* pixman_color_t pc = { 0xFFFF, 0x0000, 0x0000, 0xFFFF }; */
-	img->_pix = pixman_image_create_solid_fill(&pc);
-	return img;
+	return newimage(r, PIXMAN_a8, 0, 0);
 }
 
-void
-ImageFill(Image *img, int r, int g, int b)
+Image *
+newalpha16(Rectangle r)
 {
-	pixman_color_t white = { r, g, b, 0xFFFF };
-	pixman_image_t *fill = pixman_image_create_solid_fill(&white);
-	Image *fillImg = allocImage();
-	fillImg->_pix = fill;
-	Draw(img, img->Rect, fillImg, ZP, PIXMAN_OP_SRC);
+	return newimage(r, PIXMAN_a8r8g8b8, 0, 0);
 }
 
+Image *
+newrgba(Rectangle r)
+{
+	return newimage(r, PIXMAN_r8g8b8a8, 0, 0);
+}
+
+Image *
+newargb(Rectangle r)
+{
+	return newimage(r, PIXMAN_a8r8g8b8, 0, 0);
+}
+
+Image *
+newuniform(Color c)
+{
+	return newimage(IR, PIXMAN_a8r8g8b8, 1, &c);
+}
 
 Color *
 ImageAt(Image *img)
@@ -116,5 +79,5 @@ ImageAlphaAt(Image *img)
 Rectangle
 ImageBounds(Image *img)
 {
-	return img->Rect;
+	return img->r;
 }

@@ -4,6 +4,7 @@
 #include <linux/fb.h>
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <err.h>
 
@@ -16,7 +17,8 @@ typedef struct Framebuffer {
 	int Fd;
 	struct fb_var_screeninfo vinfo;
 	struct fb_fix_screeninfo finfo;
-	Rectangle Rect;
+	Rectangle r;
+	Rectangle clipr;
 	int bpp;
 	void *mem;
 	void *Pix;
@@ -102,7 +104,8 @@ NewFramebuffer(char *path)
 	fcntl(fd, F_SETFD, fcntl(fd, F_GETFD)|FD_CLOEXEC);
 	fb->Fd = fd;
 
-	fb->Rect = Rect(0, 0, fb->vinfo.xres, fb->vinfo.yres);
+	fb->r = rect(0, 0, fb->vinfo.xres, fb->vinfo.yres);
+	fb->clipr = rectpt(pt(fb->vinfo.xoffset, fb->vinfo.yoffset), rectsize(fb->r));
 	fb->len = fb->finfo.line_length * fb->vinfo.yres_virtual;
 	fb->mem = mmap(0, fb->len, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 	fb->bpp = (fb->vinfo.bits_per_pixel + 7) >> 3;
@@ -113,7 +116,20 @@ NewFramebuffer(char *path)
 	fb_cmap_save(fb, 1);
 	fb_cmap(fb);
 
+	fbdump(fb);
+
 	return fb;
+}
+
+void
+fbdump(Framebuffer *fb)
+{
+	fprintf(stderr, "framebuffer(%p): ");
+	fputs("r=", stderr);
+	rectdump(fb->r);
+	fputs(" clipr=", stderr);
+	rectdump(fb->clipr);
+	putc('\n', stderr);
 }
 
 Image *
@@ -123,16 +139,8 @@ NewFramebufferImage(char *path)
 	Image *img;
 	if (!(fb = NewFramebuffer(path)))
 		return 0;
-	if (!(img = allocImage(fb->Rect)))
+	img = newimaged(fb->r, PIXMAN_a8r8g8b8, 0, 0, fb->Pix);
+	if (!img)
 		return 0;
-	img->Rect = fb->Rect;
-	img->Pix = fb->Pix;
-	img->_pix_fmt = PIXMAN_a8r8g8b8;
-	img->_pix = pixman_image_create_bits(
-	    img->_pix_fmt,
-	    RectDx(img->Rect),
-	    RectDy(img->Rect),
-	    img->Pix,
-	    RectDx(img->Rect)*fb->bpp);
 	return img;
 }

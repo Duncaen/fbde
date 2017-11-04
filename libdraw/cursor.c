@@ -21,25 +21,24 @@ Cursor arrow = {
 	},
 };
 
-
 Image *
-NewPlan9CursorImage(Cursor *cur)
+newcursorp9(Cursor *cur)
 {
 	unsigned char *ip, *mp;
 	Image *fill, *mask, *bord, *img, *white, *black;
 	int i, j, set, clr;
 	Rectangle curr;
 
-	curr = Rect(0, 0, 16, 16);
-	img = NewRGBA(curr);
-	fill = NewAlpha(curr);
-	mask = NewAlpha(curr);
-	bord = NewAlpha(curr);
-	white = NewUniform(White);
-	black = NewUniform(Black);
+	curr = rect(0, 0, 16, 16);
+	img = newrgba(curr);
+	fill = newalpha(curr);
+	mask = newalpha(curr);
+	bord = newalpha(curr);
+	white = newuniform(White);
+	black = newuniform(Black);
 
-	ip = ImageMem(fill);
-	mp = ImageMem(mask);
+	ip = fill->Pix;
+	mp = mask->Pix;
 
 	for (i = 0; i < 32; i++) {
 		set = cur->set[i];
@@ -50,15 +49,15 @@ NewPlan9CursorImage(Cursor *cur)
 		}
 	}
 
-	DrawMask(bord, img->Rect, fill, ZP, mask, ZP, Src);
-	DrawMask(img, img->Rect, black, ZP, mask, ZP, Src);
-	DrawMask(img, img->Rect, white, ZP, bord, ZP, Over);
+	drawmask(bord, img->r, fill, ZP, mask, ZP, Src);
+	drawmask(img, img->r, black, ZP, mask, ZP, Src);
+	drawmask(img, img->r, white, ZP, bord, ZP, Over);
 
-	ImageFree(fill);
-	ImageFree(mask);
-	ImageFree(bord);
-	ImageFree(white);
-	ImageFree(black);
+	freeimg(fill);
+	freeimg(mask);
+	freeimg(bord);
+	freeimg(white);
+	freeimg(black);
 
 	return img;
 }
